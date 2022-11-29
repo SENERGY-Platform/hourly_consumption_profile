@@ -57,10 +57,10 @@ class Operator(util.OperatorBase):
             return pd.to_datetime(timestamp)
 
     def update_hourly_consumption_list_dict(self):
-        min_index = np.argmin([float(datapoint['Energy_Consumption']) for datapoint in self.consumption_same_hour])
-        max_index = np.argmax([float(datapoint['Energy_Consumption']) for datapoint in self.consumption_same_hour])
-        hour_consumption_max = float(self.consumption_same_hour[max_index]['Energy_Consumption'])
-        hour_consumption_min = float(self.consumption_same_hour[min_index]['Energy_Consumption'])
+        min_index = np.argmin([float(datapoint['Consumption']) for datapoint in self.consumption_same_hour])
+        max_index = np.argmax([float(datapoint['Consumption']) for datapoint in self.consumption_same_hour])
+        hour_consumption_max = float(self.consumption_same_hour[max_index]['Consumption'])
+        hour_consumption_min = float(self.consumption_same_hour[min_index]['Consumption'])
         #day_consumption_max_time = self.todatetime(self.consumption_same_day[max_index]['energy_time']).tz_localize(None)
         #day_consumption_min_time = self.todatetime(self.consumption_same_day[min_index]['energy_time']).tz_localize(None)
         overall_hourly_consumption = hour_consumption_max-hour_consumption_min
@@ -97,14 +97,14 @@ class Operator(util.OperatorBase):
         return [self.hourly_consumption_list_dict[self.current_hour.hour-1][i] for i in anomalous_indices_high]
     
     def run(self, data, selector='energy_func'):
-        timestamp = self.todatetime(data['Energy_Time']).tz_localize(None)
-        print('energy: '+str(data['Energy_Consumption'])+'  '+'time: '+str(timestamp))
+        timestamp = self.todatetime(data['Time']).tz_localize(None)
+        print('energy: '+str(data['Consumption'])+'  '+'time: '+str(timestamp))
         self.current_hour = timestamp.floor('h')
         if self.consumption_same_hour == []:
             self.consumption_same_hour.append(data)
             return
         elif self.consumption_same_hour != []:
-            if self.current_hour==self.todatetime(self.consumption_same_hour[-1]['Energy_Time']).tz_localize(None).floor('h'):
+            if self.current_hour==self.todatetime(self.consumption_same_hour[-1]['Time']).tz_localize(None).floor('h'):
                 self.consumption_same_hour.append(data)
                 return
             else:
