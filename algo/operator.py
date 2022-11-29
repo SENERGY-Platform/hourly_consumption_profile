@@ -64,15 +64,15 @@ class Operator(util.OperatorBase):
         #day_consumption_max_time = self.todatetime(self.consumption_same_day[max_index]['energy_time']).tz_localize(None)
         #day_consumption_min_time = self.todatetime(self.consumption_same_day[min_index]['energy_time']).tz_localize(None)
         overall_hourly_consumption = hour_consumption_max-hour_consumption_min
-        self.hourly_consumption_list_dict[self.current_hour.hour-1].append((self.current_hour-pd.Timedelta(1,'hour'), overall_hourly_consumption))
+        self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24].append((self.current_hour-pd.Timedelta(1,'hour'), overall_hourly_consumption))
         with open(self.hourly_consumption_list_file_path, 'wb') as f:
             pickle.dump(self.hourly_consumption_list_dict, f)
         return
 
     def determine_epsilon(self):
         neighbors = NearestNeighbors(n_neighbors=10)
-        neighbors_fit = neighbors.fit(np.array([hourly_consumption for _, hourly_consumption in self.hourly_consumption_list_dict[self.current_hour.hour-1]]).reshape(-1,1))
-        distances, _ = neighbors_fit.kneighbors(np.array([hourly_consumption for _, hourly_consumption in self.hourly_consumption_list_dict[self.current_hour.hour-1]]).reshape(-1,1))
+        neighbors_fit = neighbors.fit(np.array([hourly_consumption for _, hourly_consumption in self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24]]).reshape(-1,1))
+        distances, _ = neighbors_fit.kneighbors(np.array([hourly_consumption for _, hourly_consumption in self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24]]).reshape(-1,1))
         distances = np.sort(distances, axis=0)
         distances_x = distances[:,1]
         kneedle = kneed.KneeLocator(np.linspace(0,1,len(distances_x)), distances_x, S=0.9, curve="convex", direction="increasing")
@@ -82,19 +82,19 @@ class Operator(util.OperatorBase):
         return epsilon
 
     def create_clustering(self, epsilon):
-        self.hourly_consumption_clustering[self.current_hour.hour-1] = DBSCAN(eps=epsilon, min_samples=10).fit(np.array([hourly_consumption 
-                                                                     for _, hourly_consumption in self.hourly_consumption_list_dict[self.current_hour.hour-1]]).reshape(-1,1))
+        self.hourly_consumption_clustering[(self.current_hour.hour-1)%24] = DBSCAN(eps=epsilon, min_samples=10).fit(np.array([hourly_consumption 
+                                                                     for _, hourly_consumption in self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24]]).reshape(-1,1))
         with open(self.clustering_file_path, 'wb') as f:
             pickle.dump(self.hourly_consumption_clustering, f)
-        return self.hourly_consumption_clustering[self.current_hour.hour-1].labels_
+        return self.hourly_consumption_clustering[(self.current_hour.hour-1)%24].labels_
     
     def test_hourly_consumption(self, clustering_labels):
         anomalous_indices = np.where(clustering_labels==clustering_labels.min())[0]
-        quartile_3 = np.quantile([hourly_consumption for _, hourly_consumption in self.hourly_consumption_list_dict[self.current_hour.hour-1]],0.75)
-        anomalous_indices_high = [i for i in anomalous_indices if self.hourly_consumption_list_dict[self.current_hour.hour-1][i][1] > quartile_3]
-        if len(self.hourly_consumption_list_dict[self.current_hour.hour-1])-1 in anomalous_indices:
+        quartile_3 = np.quantile([hourly_consumption for _, hourly_consumption in self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24]],0.75)
+        anomalous_indices_high = [i for i in anomalous_indices if self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24][i][1] > quartile_3]
+        if len(self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24])-1 in anomalous_indices:
             print(f'In der letzten Stunde wurde durch {self.device_name} ungewöhnlich viel Strom verbraucht.')
-        return [self.hourly_consumption_list_dict[self.current_hour.hour-1][i] for i in anomalous_indices_high]
+        return [self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24][i] for i in anomalous_indices_high]
     
     def run(self, data, selector='energy_func'):
         timestamp = self.todatetime(data['Time']).tz_localize(None)
@@ -109,7 +109,7 @@ class Operator(util.OperatorBase):
                 return
             else:
                 self.update_hourly_consumption_list_dict()
-                if len(self.hourly_consumption_list_dict[self.current_hour.hour-1]) >= 24:
+                if len(self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24]) >= 24:
                     epsilon = self.determine_epsilon()
                     clustering_labels = self.create_clustering(epsilon)
                     days_with_excessive_consumption_during_this_hour_of_day = self.test_hourly_consumption(clustering_labels)
