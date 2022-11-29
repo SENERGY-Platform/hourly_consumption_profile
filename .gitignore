@@ -1,0 +1,4 @@
+tests/resources/messages.txt
+tests/resources/opr_config.json
+data
+__pycache__
