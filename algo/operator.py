@@ -90,8 +90,8 @@ class Operator(util.OperatorBase):
     
     def test_hourly_consumption(self, clustering_labels):
         anomalous_indices = np.where(clustering_labels==clustering_labels.min())[0]
-        quartile_3 = np.quantile([hourly_consumption for _, hourly_consumption in self.hourly_consumption_clustering[self.current_hour.hour-1]],0.75)
-        anomalous_indices_high = [i for i in anomalous_indices if self.hourly_consumption_clustering[self.current_hour.hour-1][i][1] > quartile_3]
+        quartile_3 = np.quantile([hourly_consumption for _, hourly_consumption in self.hourly_consumption_list_dict[self.current_hour.hour-1]],0.75)
+        anomalous_indices_high = [i for i in anomalous_indices if self.hourly_consumption_list_dict[self.current_hour.hour-1][i][1] > quartile_3]
         if len(self.hourly_consumption_list_dict[self.current_hour.hour-1])-1 in anomalous_indices:
             print(f'In der letzten Stunde wurde durch {self.device_name} ungewöhnlich viel Strom verbraucht.')
         return [self.hourly_consumption_list_dict[self.current_hour.hour-1][i] for i in anomalous_indices_high]
