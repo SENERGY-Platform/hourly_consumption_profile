@@ -45,7 +45,7 @@ class Operator(util.OperatorBase):
 
         self.clustering_file_path = f'{data_path}/{self.device_id}_clustering.pickle'
         self.epsilon_file_path = f'{data_path}/{self.device_id}_epsilon.pickle'
-        self.hourly_consumption_list_file_path = f'{data_path}/{self.device_id}_daily_consumption_list.pickle'
+        self.hourly_consumption_list_file_path = f'{data_path}/{self.device_id}_hourly_consumption_list.pickle'
 
     def todatetime(self, timestamp):
         if str(timestamp).isdigit():
@@ -82,13 +82,13 @@ class Operator(util.OperatorBase):
         return epsilon
 
     def create_clustering(self, epsilon):
-        self.hourly_consumption_clustering[self.current_hour.hour-1] = DBSCAN(eps=epsilon, min_samples=10).fit(np.array([daily_consumption 
-                                                                     for _, daily_consumption in self.hourly_consumption_list_dict[self.current_hour.hour-1]]).reshape(-1,1))
+        self.hourly_consumption_clustering[self.current_hour.hour-1] = DBSCAN(eps=epsilon, min_samples=10).fit(np.array([hourly_consumption 
+                                                                     for _, hourly_consumption in self.hourly_consumption_list_dict[self.current_hour.hour-1]]).reshape(-1,1))
         with open(self.clustering_file_path, 'wb') as f:
             pickle.dump(self.hourly_consumption_clustering, f)
         return self.hourly_consumption_clustering[self.current_hour.hour-1].labels_
     
-    def test_daily_consumption(self, clustering_labels):
+    def test_hourly_consumption(self, clustering_labels):
         anomalous_indices = np.where(clustering_labels==clustering_labels.min())[0]
         quartile_3 = np.quantile([hourly_consumption for _, hourly_consumption in self.hourly_consumption_clustering[self.current_hour.hour-1]],0.75)
         anomalous_indices_high = [i for i in anomalous_indices if self.hourly_consumption_clustering[self.current_hour.hour-1][i][1] > quartile_3]
@@ -112,12 +112,12 @@ class Operator(util.OperatorBase):
                 if len(self.hourly_consumption_list_dict[self.current_hour.hour-1]) >= 24:
                     epsilon = self.determine_epsilon()
                     clustering_labels = self.create_clustering(epsilon)
-                    days_with_excessive_consumption_during_this_hour_of_day = self.test_daily_consumption(clustering_labels)
+                    days_with_excessive_consumption_during_this_hour_of_day = self.test_hourly_consumption(clustering_labels)
                     self.consumption_same_hour = [data]                 
                     if self.current_hour-pd.Timedelta(1,'hour') in list(chain.from_iterable(days_with_excessive_consumption_during_this_hour_of_day)):
-                        return {'value': f'Nachricht vom {str(timestamp.date())} um {str(timestamp.hour)}:{str(timestamp.minute)} Uhr: In der letzten Stunde wurde übermäßig viel Energie durch das Gerät verbraucht.'} # Excessive daily consumption detected yesterday.
+                        return {'value': f'Nachricht vom {str(timestamp.date())} um {str(timestamp.hour)}:{str(timestamp.minute)} Uhr: In der letzten Stunde wurde übermäßig viel Energie durch das Gerät verbraucht.'} # Excessive hourly consumption detected.
                     else:
-                        return  # No excessive daily consumtion yesterday.
+                        return  # No excessive hourly consumtion yesterday.
                 else:
                     self.consumption_same_hour = [data]
                     return
