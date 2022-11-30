@@ -70,6 +70,7 @@ class Operator(util.OperatorBase):
         return
 
     def determine_epsilon(self):
+        print(np.array([hourly_consumption for _, hourly_consumption in self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24]]).reshape(-1,1))
         neighbors = NearestNeighbors(n_neighbors=10)
         neighbors_fit = neighbors.fit(np.array([hourly_consumption for _, hourly_consumption in self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24]]).reshape(-1,1))
         distances, _ = neighbors_fit.kneighbors(np.array([hourly_consumption for _, hourly_consumption in self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24]]).reshape(-1,1))
