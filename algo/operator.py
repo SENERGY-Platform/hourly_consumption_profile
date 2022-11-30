@@ -107,7 +107,7 @@ class Operator(util.OperatorBase):
             if self.current_hour==self.todatetime(self.consumption_same_hour[-1]['Time']).tz_localize(None).floor('h'):
                 self.consumption_same_hour.append(data)
                 return
-            else:
+            elif self.current_hour>self.todatetime(self.consumption_same_hour[-1]['Time']).tz_localize(None).floor('h'):
                 self.update_hourly_consumption_list_dict()
                 if len(self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24]) >= 24:
                     epsilon = self.determine_epsilon()
