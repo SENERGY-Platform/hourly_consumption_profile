@@ -79,6 +79,8 @@ class Operator(util.OperatorBase):
         epsilon = kneedle.knee_y
         with open(self.epsilon_file_path, 'wb') as f:
             pickle.dump(epsilon, f)
+        if epsilon==0 or epsilon==None:
+            return 1
         return epsilon
 
     def create_clustering(self, epsilon):
