@@ -37,6 +37,8 @@ class Operator(util.OperatorBase):
 
         self.hourly_consumption_list_dict = defaultdict(list)
 
+        self.excessive_hourly_consumption_list = []
+
         self.consumption_same_hour = []
 
         self.current_hour = None
@@ -46,6 +48,7 @@ class Operator(util.OperatorBase):
         self.clustering_file_path = f'{data_path}/{self.device_id}_clustering.pickle'
         self.epsilon_file_path = f'{data_path}/{self.device_id}_epsilon.pickle'
         self.hourly_consumption_list_file_path = f'{data_path}/{self.device_id}_hourly_consumption_list.pickle'
+        self.excessive_hourly_consumption_list_file_path = f'{data_path}/{self.device_id}_excessive_hourly_consumption_list.pickle'
 
     def todatetime(self, timestamp):
         if str(timestamp).isdigit():
@@ -96,6 +99,9 @@ class Operator(util.OperatorBase):
         anomalous_indices_high = [i for i in anomalous_indices if self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24][i][1] > quartile_3]
         if len(self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24])-1 in anomalous_indices:
             print(f'In der letzten Stunde wurde durch {self.device_name} ungewöhnlich viel Strom verbraucht.')
+            self.excessive_hourly_consumption_list.append((self.current_hour.hour,(self.current_hour.hour-1)%24))
+            with open(self.excessive_hourly_consumption_list_file_path, 'wb') as f:
+                pickle.dump(self.excessive_hourly_consumption_list, f)
         return [self.hourly_consumption_list_dict[(self.current_hour.hour-1)%24][i] for i in anomalous_indices_high]
     
     def run(self, data, selector='energy_func'):
